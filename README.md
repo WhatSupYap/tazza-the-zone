@@ -161,6 +161,21 @@ phase2.5_game/
 
 ---
 
+## 📷 스크린샷
+
+![메인](./assets/screenshot/image.png)
+
+![캐릭터 선택창](./assets/screenshot/image-1.png)
+
+![플레이 화면](./assets/screenshot/image-2.png)
+
+![족보 화면](./assets/screenshot/image-3.png)
+
+![승리 화면](./assets/screenshot/image-5.png)
+
+![패배 화면](./assets/screenshot/image-4.png)
+
+
 ## ⚙️ 설정 (config.py)
 
 주요 게임 설정값:
