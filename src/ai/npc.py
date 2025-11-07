@@ -61,6 +61,7 @@ class NPCPlayer(Player):
         """능력치가 유효한 범위인지 확인합니다."""
         return max(NPC_STAT_MIN, min(NPC_STAT_MAX, value))
     
+    # 시연시 발표
     def update_stats(self):
         """멘탈 상태에 따라 능력치를 업데이트합니다."""
         if self.mental <= MENTAL_THRESHOLD:
@@ -113,6 +114,7 @@ class NPCPlayer(Player):
         calculation_chance = self.composure / 10.0
         return random.random() < calculation_chance
     
+    # 시연시 발표
     def should_speak(self) -> bool:
         """발언할지 여부를 결정합니다."""
         # 기만 능력치가 높으면 말을 많이 함
@@ -212,6 +214,7 @@ class NPCPlayer(Player):
             
             card_values.append((i, value))
         
+        # 시연시 발표
         # 성격에 따른 전략
         if self.deception >= 7 and self.boldness >= 7:
             # 기만과 대담이 높으면: 가장 약한 카드 공개 (블러핑)

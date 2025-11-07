@@ -69,6 +69,7 @@ class GameScreen:
         self.waiting_for_npc = False
         self.npc_action_timer = 0
         self.npc_action_delay = 1500  # 1.5초 대기
+        self.npc_turn_in_progress = False  # NPC 턴 실행 중 플래그 (중복 실행 방지)
         
         # NPC 선택
         self.npc_card_rects = []  # NPC 카드 영역들
@@ -386,17 +387,14 @@ class GameScreen:
         # ★★★ 새로운 턴 시스템: 현재 플레이어 턴인지 확인
         is_player_turn = self.game.is_player_turn()
         
-        print(f"DEBUG: 버튼 상태 업데이트 - 플레이어 턴? {is_player_turn}, waiting_for_npc? {self.waiting_for_npc}")
-        print(f"DEBUG: 현재 턴: {self.game.get_current_turn_player().name if self.game.get_current_turn_player() else 'None'}")
-        print(f"DEBUG: 플레이어 베팅: {self.game.player_current_bet}, NPC 베팅: {self.game.npc_current_bet}")
+        # print(f"DEBUG: 버튼 상태 업데이트 - 플레이어 턴? {is_player_turn}, waiting_for_npc? {self.waiting_for_npc}")
+        # print(f"DEBUG: 현재 턴: {self.game.get_current_turn_player().name if self.game.get_current_turn_player() else 'None'}")
+        # print(f"DEBUG: 플레이어 베팅: {self.game.player_current_bet}, NPC 베팅: {self.game.npc_current_bet}")
         
-        # NPC 턴이고 아직 대기 상태가 아니면 NPC 턴 시작
-        # (이미 waiting_for_npc가 True면 타이머가 실행 중이므로 다시 설정하지 않음)
-        if not is_player_turn and not self.waiting_for_npc:
-            print("DEBUG: _update_button_states - NPC 턴이므로 NPC 턴 대기 시작")
-            self.waiting_for_npc = True
-            self.npc_action_timer = pygame.time.get_ticks()
-            self.npc_action_delay = 1000
+        # NPC 턴이면 버튼만 비활성화 (자동 트리거는 하지 않음)
+        # NPC 턴 트리거는 _player_bet_action() 또는 _execute_pending_action()에서만 수행
+        if not is_player_turn:
+            # print("DEBUG: _update_button_states - NPC 턴이므로 버튼 비활성화만 수행")
             # 버튼 모두 비활성화
             if hasattr(self, 'btn_die'):
                 self.btn_die.set_enabled(False)
@@ -419,7 +417,7 @@ class GameScreen:
             min_bet = self.game.min_bet
             call_amount = self.game.npc_current_bet - self.game.player_current_bet
             
-            print(f"DEBUG: call_amount = {call_amount}, 판돈 = {pot}")
+            # print(f"DEBUG: call_amount = {call_amount}, 판돈 = {pot}")
             
             # 플레이어가 이번 베팅 라운드에서 이미 행동했는지 여부
             player_has_acted = self.game.player_has_acted
@@ -433,7 +431,7 @@ class GameScreen:
             # 3. 콜(Call) 버튼: 상대가 나보다 많이 베팅했고, 그 금액만큼 돈이 있을 때 활성화
             enable_call = call_amount > 0 and player.money >= call_amount
             
-            print(f"DEBUG: 콜 활성화? {enable_call} (call_amount={call_amount}, money={player.money})")
+            # print(f"DEBUG: 콜 활성화? {enable_call} (call_amount={call_amount}, money={player.money})")
 
             # 4. 체크(Check) 버튼: 플레이어가 아직 행동하지 않았고, 콜할 금액이 없을 때 활성화
             enable_check = not player_has_acted and call_amount <= 0
@@ -453,7 +451,7 @@ class GameScreen:
                 if half_amount >= call_amount:
                     enable_half = True
         
-        print(f"DEBUG: 최종 버튼 상태 - 다이:{enable_die}, 체크:{enable_check}, 삥:{enable_pping}, 하프:{enable_half}, 콜:{enable_call}, 올인:{enable_allin}")
+        # print(f"DEBUG: 최종 버튼 상태 - 다이:{enable_die}, 체크:{enable_check}, 삥:{enable_pping}, 하프:{enable_half}, 콜:{enable_call}, 올인:{enable_allin}")
 
         # 최종적으로 계산된 상태를 각 버튼에 적용합니다.
         if hasattr(self, 'btn_die'):
@@ -857,78 +855,98 @@ class GameScreen:
                     self.npc_action_delay = 1500
                     self.show_message("쇼다운 준비...", 1500)
             else:
-                print("DEBUG: 플레이어 베팅 후 NPC 턴으로 전환")
-                # NPC 턴 대기 상태로 전환
-                self.waiting_for_npc = True
-                self.npc_action_timer = pygame.time.get_ticks()
-                self.npc_action_delay = 1500
-                self.show_message("NPC가 생각 중...", 1500)
+                # 베팅이 아직 진행 중 - 현재 턴을 명시적으로 확인
+                current_turn_player = self.game.get_current_turn_player()
+                print(f"DEBUG: 플레이어 베팅 후 현재 턴: {current_turn_player.name if current_turn_player else 'None'}")
+                
+                # 현재 턴이 NPC이면 NPC 턴 대기 설정
+                if current_turn_player == self.game.npc:
+                    print("DEBUG: NPC 턴으로 전환됨 - NPC 턴 대기 설정")
+                    self.waiting_for_npc = True
+                    self.npc_action_timer = pygame.time.get_ticks()
+                    self.npc_action_delay = 1500
+                    self.show_message("NPC가 생각 중...", 1500)
+                else:
+                    # 플레이어 턴이면 아무것도 안함 (레이즈 등으로 다시 플레이어 턴인 경우)
+                    print("DEBUG: 플레이어 베팅 후에도 여전히 플레이어 턴 (레이즈 등)")
+                    self.show_message("계속 베팅하세요", 1000)
     
     def _npc_turn(self):
         """NPC 턴을 처리합니다."""
-        print("DEBUG: NPC 턴 시작")
+        # 중복 실행 방지
+        if self.npc_turn_in_progress:
+            print("DEBUG: NPC 턴이 이미 실행 중입니다 - 스킵")
+            return
         
-        # NPC 카드 족보 평가
-        from core.hand_evaluator import HandEvaluator
-        evaluator = HandEvaluator()
-        npc_hand = evaluator.evaluate(self.game.npc.cards)
+        self.npc_turn_in_progress = True
+        print("DEBUG: NPC 턴 시작 (플래그 설정)")
         
-        # 상대방 공개 카드
-        player_visible_cards = [card for card in self.game.player.cards if card.is_revealed]
-
-
-        # NPC 대사
-        if self.game.npc.should_speak():
-            from ai.llm_handler import LLMHandler
-            llm = LLMHandler()
-            # 대사 가져오기
-            talk, inner_talk = llm.generate_dialogue(self.game)
-            self.inner_thought_text = inner_talk  # 속마음 저장
-            self.show_dialogue(self.game.npc.name, talk, wait_for_click=True)
-        
-        # NPC가 콜해야 하는 금액 계산 (플레이어 베팅액 - NPC 베팅액)
-        call_amount = self.game.player_current_bet - self.game.npc_current_bet
-        
-        action, amount = self.game.npc.decide_bet_action(
-            npc_hand,
-            player_visible_cards,
-            self.game.pot,
-            call_amount,
-            self.game.npc_current_bet == 0
-        )
-        
-        self.game.process_bet(self.game.npc, action, amount)
-        self.show_message(f"NPC: {action.upper()}", 2000)
-        
-        print(f"DEBUG: NPC 베팅 완료 - {action}")
-        
-        # 베팅이 완료되었는지 확인 - 완료되면 다음 단계로
-        if self.game.is_betting_done():
-            print("DEBUG: NPC 베팅 후 베팅 완료됨")
-            # 1차 베팅이 끝났고 아직 카드가 2장이면 3번째 카드 배분
-            if self.game.betting_phase == 0 and len(self.game.player.cards) == 2:
-                self.waiting_for_npc = True
-                self.npc_action_timer = pygame.time.get_ticks()
-                self.npc_action_delay = 1500
-            # 2차 베팅이 끝났으면 자동으로 쇼다운 진행
-            else:
-                self.waiting_for_npc = True
-                self.npc_action_timer = pygame.time.get_ticks()
-                self.npc_action_delay = 1500
-        else:
-            # 베팅이 아직 진행 중 - 현재 턴 확인
-            current_turn_player = self.game.get_current_turn_player()
-            print(f"DEBUG: NPC 베팅 후 베팅 계속 진행 - 현재 턴: {current_turn_player.name if current_turn_player else 'None'}")
+        try:
+            # NPC 카드 족보 평가
+            from core.hand_evaluator import HandEvaluator
+            evaluator = HandEvaluator()
+            npc_hand = evaluator.evaluate(self.game.npc.cards)
             
-            # 여전히 NPC 턴이면 다시 NPC 턴 실행 (대기 시간 설정)
-            if current_turn_player == self.game.npc:
-                print("DEBUG: 여전히 NPC 턴 - 다시 NPC 턴 대기")
-                self.waiting_for_npc = True
-                self.npc_action_timer = pygame.time.get_ticks()
-                self.npc_action_delay = 1500
+            # 상대방 공개 카드
+            player_visible_cards = [card for card in self.game.player.cards if card.is_revealed]
+
+            # NPC 대사
+            if self.game.npc.should_speak():
+                from ai.llm_handler import LLMHandler
+                llm = LLMHandler()
+                # 대사 가져오기
+                talk, inner_talk = llm.generate_dialogue(self.game)
+                self.inner_thought_text = inner_talk  # 속마음 저장
+                self.show_dialogue(self.game.npc.name, talk, wait_for_click=True)
+            
+            # NPC가 콜해야 하는 금액 계산 (플레이어 베팅액 - NPC 베팅액)
+            call_amount = self.game.player_current_bet - self.game.npc_current_bet
+            
+            action, amount = self.game.npc.decide_bet_action(
+                npc_hand,
+                player_visible_cards,
+                self.game.pot,
+                call_amount,
+                self.game.npc_current_bet == 0
+            )
+            
+            self.game.process_bet(self.game.npc, action, amount)
+            self.show_message(f"NPC: {action.upper()}", 2000)
+            
+            print(f"DEBUG: NPC 베팅 완료 - {action}")
+            
+            # 베팅이 완료되었는지 확인 - 완료되면 다음 단계로
+            if self.game.is_betting_done():
+                print("DEBUG: NPC 베팅 후 베팅 완료됨")
+                # 1차 베팅이 끝났고 아직 카드가 2장이면 3번째 카드 배분
+                if self.game.betting_phase == 0 and len(self.game.player.cards) == 2:
+                    self.waiting_for_npc = True
+                    self.npc_action_timer = pygame.time.get_ticks()
+                    self.npc_action_delay = 1500
+                # 2차 베팅이 끝났으면 자동으로 쇼다운 진행
+                else:
+                    self.waiting_for_npc = True
+                    self.npc_action_timer = pygame.time.get_ticks()
+                    self.npc_action_delay = 1500
             else:
-                print("DEBUG: 플레이어 턴으로 전환 - 플레이어 입력 대기")
-                # 플레이어 차례로 돌아감 - waiting_for_npc를 False로 유지
+                # 베팅이 아직 진행 중 - 현재 턴 확인
+                current_turn_player = self.game.get_current_turn_player()
+                print(f"DEBUG: NPC 베팅 후 현재 턴: {current_turn_player.name if current_turn_player else 'None'}")
+                
+                # 여전히 NPC 턴이면 다시 NPC 턴 대기 설정 (연속 NPC 턴)
+                if current_turn_player == self.game.npc:
+                    print("DEBUG: 연속 NPC 턴 - 다시 대기 설정")
+                    self.waiting_for_npc = True
+                    self.npc_action_timer = pygame.time.get_ticks()
+                    self.npc_action_delay = 1500
+                else:
+                    print("DEBUG: 플레이어 턴으로 전환됨 - 플레이어 입력 대기")
+                    # waiting_for_npc는 이미 False이므로 아무것도 안함
+        
+        finally:
+            # 항상 플래그 해제 (예외 발생 시에도)
+            self.npc_turn_in_progress = False
+            print("DEBUG: NPC 턴 종료 (플래그 해제)")
         
 
     
@@ -950,8 +968,20 @@ class GameScreen:
             if self.game.betting_phase == 0 and len(self.game.player.cards) == 2:
                 self.game.deal_third_card()
                 self.show_message("3번째 카드 배분! 2차 베팅 시작!", 3000)
-                # 버튼 상태 업데이트 (자동으로 turnPlayer 확인)
-                self._update_button_states()
+                
+                # 2차 베팅 시작 - NPC가 선이면 NPC 턴 대기 설정
+                current_turn_player = self.game.get_current_turn_player()
+                print(f"DEBUG: 2차 베팅 시작 - 현재 턴: {current_turn_player.name}")
+                
+                if current_turn_player == self.game.npc:
+                    print("DEBUG: 2차 베팅 - NPC 턴이므로 대기 설정")
+                    self.waiting_for_npc = True
+                    self.npc_action_timer = pygame.time.get_ticks()
+                    self.npc_action_delay = 1500
+                else:
+                    print("DEBUG: 2차 베팅 - 플레이어 턴")
+                    # 버튼 상태 업데이트
+                    self._update_button_states()
             # 2차 베팅이 끝났으면 자동으로 쇼다운 진행
             else:
                 print("DEBUG: 2차 베팅 완료 - 쇼다운 진행")
@@ -1315,11 +1345,18 @@ class GameScreen:
         
         self.show_message("1차 베팅을 시작합니다!", 2000)
         
-        # first_player 확인 (새로운 턴 시스템이 자동으로 처리)
+        # first_player 확인
         print(f"DEBUG: 1차 베팅 시작 - 선: {self.game.first_player.name}")
         print(f"DEBUG: 현재 턴: {self.game.get_current_turn_player().name}")
         
-        # NPC 턴이면 자동으로 대기 상태로 전환 (_update_button_states에서 처리)
+        # NPC가 선이면 NPC 턴 대기 설정
+        current_turn_player = self.game.get_current_turn_player()
+        if current_turn_player == self.game.npc:
+            print("DEBUG: NPC가 선이므로 NPC 턴 대기 설정")
+            self.waiting_for_npc = True
+            self.npc_action_timer = pygame.time.get_ticks()
+            self.npc_action_delay = 1500
+            self.show_message("NPC가 먼저 베팅합니다...", 1500)
     
     def _handle_showdown_click(self, pos):
         """쇼다운 화면에서 클릭을 처리합니다."""

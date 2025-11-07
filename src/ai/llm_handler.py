@@ -86,7 +86,10 @@ class LLMHandler:
             # print(json.dumps(response_json, ensure_ascii=False, indent=4))
             talk = response_json.get('하는말', '')
             inner = response_json.get('속마음', '')
-            
+
+            if talk == "..." or inner == "...":
+                return "...","..."
+
             return talk, inner
             
         except Exception as e:
@@ -128,7 +131,7 @@ class LLMHandler:
         # 페르소나 및 입출력 데이터 정의
         # 이 셀은 프롬프트에 사용될 데이터 예시를 정의합니다.
 
-
+        # 시연시 공유
 
         # 1. 페르소나 라이브러리 정의
         personas = {
