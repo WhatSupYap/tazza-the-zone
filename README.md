@@ -163,11 +163,15 @@ phase2.5_game/
 
 ## 📷 스크린샷
 
-![메인](./assets/screenshot/image.png)
+![메인](./assets/screenshot/image-0.png)
 
 ![캐릭터 선택창](./assets/screenshot/image-1.png)
 
 ![플레이 화면](./assets/screenshot/image-2.png)
+
+![대화 화면](./assets/screenshot/image-7.png)
+
+![속마음 화면](./assets/screenshot/image-8.png)
 
 ![족보 화면](./assets/screenshot/image-3.png)
 
