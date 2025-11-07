@@ -18,7 +18,7 @@
 ### 주요 특징
 
 - 🎯 **Zone 시스템**: 몰입 상태 진입 시 모든 게임 기록 회상 가능
-- 🤖 **AI NPC**: Ollama + Eeve 모델 기반 실시간 대화 생성 (선택사항)
+- 🤖 **AI NPC**: Ollama + Eeve 모델 기반 실시간 대화 생성
 - 🎮 **다양한 캐릭터**: 영화 속 8명의 캐릭터 (평경장, 아귀, 고니, 정마담 등)
 - 🧠 **심리 시스템**: NPC의 멘탈, 분노, 능력치가 플레이에 영향
 - 🃏 **정통 섯다 규칙**: 20가지 족보와 전략적 베팅
@@ -34,9 +34,9 @@
 | **Language** | ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) |
 | **Game Engine** | ![Pygame](https://img.shields.io/badge/Pygame-00A86B?style=for-the-badge&logo=pygame&logoColor=white) |
 | **AI/LLM** | ![Ollama](https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white) ![Eeve](https://img.shields.io/badge/Eeve_10.8B-FF6B6B?style=for-the-badge) |
-<!-- | **HTTP Client** | ![Requests](https://img.shields.io/badge/Requests-3E8BFF?style=for-the-badge) | -->
 | **Image Processing** | ![Pillow](https://img.shields.io/badge/Pillow-FFD43B?style=for-the-badge) |
 | **IDE** | ![VS Code](https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white) |
+<!-- | **HTTP Client** | ![Requests](https://img.shields.io/badge/Requests-3E8BFF?style=for-the-badge) | -->
 
 </div>
 

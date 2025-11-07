@@ -11,10 +11,12 @@ import json
 import ollama
 import time
 import core.game as SutdaGame
+from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import LLM_MODEL, LLM_API_URL, LLM_TIMEOUT, LLM_TEMPERATURE, MODEL_NAME
 
+load_dotenv()
 
 class LLMHandler:
     """LLM API 통신 핸들러"""
@@ -38,9 +40,58 @@ class LLMHandler:
         )
         end_time = time.time()
         return response['message'], end_time - start_time
+
+
+
+    def chat_with_eeve_runpod(self, messages, model:str = "EEVE-Korean-10.8B"):
+
+        POD_ID = os.getenv("POD_ID")
+        
+        RUNPOD_OLLAMA_URL = f"https://{POD_ID}-11434.proxy.runpod.net/"
+
+        start_time = time.time()
+        client = ollama.Client(host=RUNPOD_OLLAMA_URL)
+
+        response = client.chat(
+            model=model,
+            messages=messages
+        )
+
+        end_time = time.time()
+        return response['message'], end_time - start_time
+
+    
     
     def generate_dialogue(self, game: SutdaGame) -> str:
        
+        talk , inner= '...', '...'
+        is_runpod_ok = True
+        try:
+            # 프롬프트 생성
+            system_prompt, user_prompt = self._build_prompt(game)
+            
+            messages = []
+            if system_prompt:
+                messages.append({'role': 'system', 'content': system_prompt})
+            
+            if user_prompt:
+                messages.append({'role': 'user', 'content': user_prompt})
+
+            # 런팟에서 호출
+            res, _ = self.chat_with_eeve_runpod(messages)
+            
+            content = res['content']
+
+            response_json = json.loads(content)
+            # print(json.dumps(response_json, ensure_ascii=False, indent=4))
+            talk = response_json.get('하는말', '')
+            inner = response_json.get('속마음', '')
+            
+            return talk, inner
+            
+        except Exception as e:
+            is_runpod_ok = False
+
         try:
             # 프롬프트 생성
             system_prompt, user_prompt = self._build_prompt(game)
@@ -54,6 +105,7 @@ class LLMHandler:
 
             # 올라마에서 모델 호출
             res, _ = self.chat_with_eeve(messages)
+            # res, _ = self.chat_with_eeve_runpod(messages)
             
             content = res['content']
 
@@ -65,8 +117,11 @@ class LLMHandler:
             return talk, inner
             
         except Exception as e:
-            print(f"LLM API 오류: {e}")
-            return "...", "..." #self._get_fallback_dialogue(context)
+            is_runpod_ok = False
+
+        return '...','...'
+        
+
     
     def _build_prompt(self, game: SutdaGame) -> str:
 
